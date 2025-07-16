@@ -1,6 +1,4 @@
 streamlit
-torch
 ultralytics
-torchvision
-Pillow
+torch
 opencv-python
