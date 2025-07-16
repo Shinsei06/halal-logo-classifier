@@ -2,3 +2,5 @@ streamlit
 torch
 torchvision
 Pillow
+opencv-python
+ultralytics
