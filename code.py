@@ -3,7 +3,7 @@ from PIL import Image
 from ultralytics import YOLO
 
 # Load the model
-model = YOLO("best.pt")  # Make sure 'best.pt' is in the same folder
+model = YOLO("best (1).pt")  # Make sure 'best.pt' is in the same folder
 
 # Page config
 st.set_page_config(page_title="Halal Logo Classifier", layout="centered")
