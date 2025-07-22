@@ -1,6 +1,5 @@
-streamlit
-torch
 ultralytics
-torchvision
-Pillow
+torch==2.2.2  # or the latest compatible with Python 3.10
 opencv-python
+streamlit
+Pillow
