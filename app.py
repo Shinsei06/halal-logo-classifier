@@ -1,33 +1,67 @@
 import streamlit as st
-from PIL import Image
 from ultralytics import YOLO
+from PIL import Image
+import numpy as np
+import cv2
 
-# Load the model
-model = YOLO("best.pt")  # Make sure 'best.pt' is in the same folder
+st.set_page_config(page_title="Halal Logo Classifier")
 
-# Page config
-st.set_page_config(page_title="Halal Logo Classifier", layout="centered")
-st.title("🟢 Halal Logo Classifier")
-st.write("Upload an image to check if the halal logo is authentic or fake.")
+# Load the YOLO model
+model = YOLO("best (4).pt")  # Replace with your actual YOLOv8 model file
 
-# Upload image
-uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
+# App title and description
+st.title("🕌 Halal Logo Classifier")
+st.write("Check if a halal logo is **Authentic** or **Fake** by uploading an image or using your device camera.")
 
-if uploaded_file:
-    image = Image.open(uploaded_file)
-    st.image(image, caption="Uploaded Image", use_column_width=True)
+# Input method selection
+input_method = st.radio("Choose input method:", ["📁 Upload Image", "📷 Camera Snapshot"])
 
-    # Predict
-    with st.spinner("Classifying..."):
+image = None
+
+# Handle image input
+if input_method == "📁 Upload Image":
+    uploaded_file = st.file_uploader("Upload Halal Logo Image", type=["jpg", "jpeg", "png"])
+    if uploaded_file:
+        image = Image.open(uploaded_file).convert("RGB")
+
+elif input_method == "📷 Camera Snapshot":
+    camera_image = st.camera_input("Take a photo of the halal logo")
+    if camera_image:
+        image = Image.open(camera_image).convert("RGB")
+
+# Process and predict
+if image:
+    with st.spinner("🔍 Classifying..."):
+        # Run YOLO prediction
         results = model.predict(image)
 
-        for result in results:
-            for box in result.boxes:
-                cls = int(box.cls[0])
-                conf = float(box.conf[0])
-                label = model.names[cls]
+        # Convert image to OpenCV format for annotation
+        img_np = np.array(image)
+        img_cv2 = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
 
-                if label.lower() == "authentic":
-                    st.success(f"✅ Authentic Logo (Confidence: {conf:.2%})")
-                else:
-                    st.error(f"❌ Fake Logo (Confidence: {conf:.2%})")
+        detected_labels = []
+
+        for box in results[0].boxes:
+            class_id = int(box.cls[0])
+            conf = float(box.conf[0])
+            label = model.names[class_id]
+            detected_labels.append(label)
+
+            x1, y1, x2, y2 = map(int, box.xyxy[0])
+            color = (0, 255, 0) if "authentic" in label.lower() else (0, 0, 255)
+            cv2.rectangle(img_cv2, (x1, y1), (x2, y2), color, 2)
+            cv2.putText(img_cv2, f"{label} {conf:.2%}", (x1, y1 - 10),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+
+        # Convert back to RGB for display
+        result_image = cv2.cvtColor(img_cv2, cv2.COLOR_BGR2RGB)
+        st.image(result_image, caption="🔎 Detected Results", use_container_width=True)
+
+        # Show result summary
+        if detected_labels:
+            if any("authentic" in lbl.lower() for lbl in detected_labels):
+                st.success("✅ **Authentic** halal logo detected.")
+            else:
+                st.error("❌ No **Authentic** logos found. Possibly **Fake**.")
+        else:
+            st.warning("⚠️ No halal logo detected. Please try another image.")
